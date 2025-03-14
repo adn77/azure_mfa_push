@@ -41,7 +41,7 @@ my $token = "";
 my $recurse_control = 0;
 
 sub update_token {
-  &radiusd::radlog(L_INFO, "aquire oauth2 token");
+	&radiusd::radlog(L_INFO, "aquire oauth2 token");
 	my $http = HTTP::Tiny->new();
 	my $res = $http->post_form( "https://login.microsoftonline.com/${tenant}/oauth2/v2.0/token", {
 		client_id => $client_id,
@@ -56,9 +56,9 @@ sub update_token {
 }
 
 sub authenticate {
-  &radiusd::radlog(L_DBG, 'azure_mfa authenticate');
+	&radiusd::radlog(L_DBG, 'azure_mfa authenticate');
 
-  my $user = $RAD_REQUEST{'User-Name'};
+	my $user = $RAD_REQUEST{'User-Name'};
 	my $XML = <<"EOF";
 <BeginTwoWayAuthenticationRequest>
  <Version>1.0</Version>
@@ -84,7 +84,7 @@ EOF
 	my $http = HTTP::Tiny->new();
 	do {
 		$token = update_token if ( $res->{status} eq '401');
-    &radiusd::radlog(L_INFO, "initiating mfa push");
+		&radiusd::radlog(L_INFO, "initiating mfa push");
 		$res = $http->post( 'https://adnotifications.windowsazure.com/StrongAuthenticationService.svc/Connector/BeginTwoWayAuthentication', {
 				headers => {
 					"Authorization" => "Bearer ${token}",
@@ -95,10 +95,10 @@ EOF
 	} while ( $res->{status} eq '401' && $recurse_control++ <= 1 );
 	$recurse_control = 0;
 
-  unless $res->{success} {
-    &radiusd::radlog(L_ERR, "unhandled HTTP/$res->{status}");
-    return RLM_MODULE_FAIL;
-  }
+	unless ($res->{success}) {
+		&radiusd::radlog(L_ERR, "unhandled HTTP/$res->{status}");
+    	return RLM_MODULE_FAIL;
+	}
 
 	$res->{content} =~ m/<AuthenticationResult>(.*)<\/AuthenticationResult>.*<UserPrincipalName>(.*)<\/UserPrincipalName>/i;
 	if ( lc($1) eq "true" && lc($user) eq lc($2) ) {
